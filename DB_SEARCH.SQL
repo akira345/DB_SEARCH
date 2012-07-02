@@ -1,0 +1,45 @@
+CREATE OR REPLACE PROCEDURE DB_SEARCH(IN_CD NUMBER) AS
+-- 		本プログラムは、項目名[HOGE]をもつテーブルを探し、該当ＣＤが記録されているテーブルをWK_TABLE_LISTに出力する
+-- カーソル定義
+		CURSOR c1 IS
+		SELECT TABLE_NAME FROM USER_TAB_COLUMNS
+		WHERE
+		COLUMN_NAME LIKE 'HOGE'
+		AND
+		TABLE_NAME IN (SELECT TABLE_NAME FROM CAT WHERE TABLE_TYPE='TABLE')
+		GROUP BY TABLE_NAME
+		ORDER BY TABLE_NAME;
+--
+		C1_REC			C1%ROWTYPE;
+--
+	DATA_CNT	NUMBER;
+	STR_SQL		VARCHAR2(1000);
+-- ********************************************************
+-- *	本体の開始
+-- ********************************************************
+	BEGIN
+	DELETE FROM WK_TABLE_LIST;
+	COMMIT;
+--  カーソルオープン
+		OPEN c1;
+		FETCH c1 INTO C1_rec;
+		LOOP
+			EXIT WHEN c1%NOTFOUND OR c1%NOTFOUND IS NULL;
+--
+				STR_SQL := 'SELECT NVL(COUNT(*),0) FROM ' || C1_REC.TABLE_NAME || ' WHERE HOGE = ' || IN_CD;
+--DBMS_OUTPUT.PUT_LIne(STR_SQL);
+					EXECUTE IMMEDIATE STR_SQL INTO DATA_CNT;
+				IF DATA_CNT >0 THEN
+					BEGIN
+						INSERT INTO WK_TABLE_LIST VALUES (C1_REC.TABLE_NAME);
+					END;
+				END IF;
+--
+			FETCH c1 INTO C1_REC;
+		END LOOP;
+		CLOSE c1;
+--
+		COMMIT;
+--
+	END;
+/
